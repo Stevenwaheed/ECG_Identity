@@ -5,7 +5,7 @@ import numpy as np
 import heartpy
 import neurokit2 as nk
 
-model_path = 'C:\\Users\\Steven20367691\\Desktop\\'
+model_path = ''
 
 
 '''
@@ -124,8 +124,8 @@ def get_ECG_features(column1, column2):
 
 
 # load the model
-Extra_tree = joblib.load(model_path+'Extra tree banha version2.h5')
-path = 'C:\\Users\\Steven20367691\\Desktop\\Team ECG'
+Extra_tree = joblib.load('Extra tree banha version2.h5')
+
 file = st.file_uploader('Upload ECG', type=['csv'])
 
 if st.button('Predict'):

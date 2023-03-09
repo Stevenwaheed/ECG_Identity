@@ -221,10 +221,10 @@ if st.button('Predict'):
                , len(PS_amplitudes), len(PT_amplitudes), len(TQ_amplitudes)
                , len(RQ_amplitudes), len(RS_amplitudes)
 
-               , len(QR_interval_list), len(RS_interval_list), len(PQ_interval_list)
-               , len(QS_interval_list), len(PS_interval_list), len(PR_interval_list)
-               , len(ST_interval_list), len(QT_interval_list), len(RT_interval_list)
-               , len(PT_interval_list)
+               , len(QR_interval), len(RS_interval), len(PQ_interval)
+               , len(QS_interval), len(PS_interval), len(PR_interval)
+               , len(ST_interval), len(QT_interval), len(RT_interval)
+               , len(PT_interval)
               ]
 
     minimum = min(lengths) - 1

@@ -188,8 +188,8 @@ if st.button('Predict'):
     PS_amplitudes = Amplitudes(np.array(features['ECG_P_Peaks']), np.array(features['ECG_S_Peaks']))
     PT_amplitudes = Amplitudes(np.array(features['ECG_T_Peaks']), np.array(features['ECG_P_Peaks']))
     TQ_amplitudes = Amplitudes(np.array(features['ECG_T_Peaks']), np.array(features['ECG_Q_Peaks']))
-    RQ_amplitudes = Amplitudes(q_peaks.values.flatten(), qr_peaks.values.flatten()))
-    RS_amplitudes = Amplitudes(sr_peaks.values.flatten(), s_peaks.values.flatten()))
+    RQ_amplitudes = Amplitudes(q_peaks.values.flatten(), qr_peaks.values.flatten())
+    RS_amplitudes = Amplitudes(sr_peaks.values.flatten(), s_peaks.values.flatten())
 
     QR_interval = intervals(q_peaks.values.flatten(), qr_peaks.values.flatten())
     RS_interval = intervals(sr_peaks.values.flatten(), s_peaks.values.flatten())

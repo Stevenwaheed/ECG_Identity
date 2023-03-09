@@ -17,7 +17,7 @@ model_path = ''
 def Distances(X1, Y1, X2, Y2):
     distances_results = []
     
-    for x1, y1, x2, y2 in zip(X1, Y1, X2, Y2):
+    for x1, y1, x2, y2 in zip(X1.values.flatten(), Y1, X2.values.flatten(), Y2):
         result = np.math.sqrt((x2 - x1)**2 + (y2-y1)**2)
         distances_results.append(result)
         
@@ -35,7 +35,8 @@ def Distances(X1, Y1, X2, Y2):
 def Slope(X1, Y1, X2, Y2):
     slope_results = []
     
-    for x1, y1, x2, y2 in zip(X1, Y1, X2, Y2):
+    for x1, y1, x2, y2 in zip(X1.values.flatten(), Y1, X2.values.flatten(), Y2):
+
         result = (y2 - y1) / (x2 - x1)
         slope_results.append(result)
         
@@ -52,9 +53,12 @@ def Slope(X1, Y1, X2, Y2):
     ,QR Amplitude, RS Amplitude}
 '''
 
+
 def Amplitudes(peak1, peak2):
-    amplitudes = np.abs(peak1.values - peak2.values)
+    amplitudes = np.abs(peak1 - peak2)
     return amplitudes
+
+
 
 def intervals(Peaks1, Peaks2):
     
@@ -68,34 +72,32 @@ def intervals(Peaks1, Peaks2):
     and return the correct two ECG peaks.
 '''
 
-def remove_nulls(column1, column2):
+def remove_nulls(peaks, rpeaks):
     
-    if column1 == 'ECG_R_Peaks' and column2 != 'ECG_R_Peaks':
+    if len(peaks) > len(rpeaks):
+        TF_selection = pd.DataFrame(peaks[:len(rpeaks)]).notna().values.flatten()
+        new_peaks = pd.DataFrame(peaks[:len(rpeaks)]).dropna()
+        new_rpeaks = pd.DataFrame(rpeaks[TF_selection])
         
-        # change the NULL values with true and false, where true means it's a null value.
-        # to show only the indices of nulls.
+        return new_peaks, new_rpeaks
+    
+    elif len(peaks) < len(rpeaks):
+        TF_selection = pd.DataFrame(peaks).notna().values.flatten()
+        new_peaks = pd.DataFrame(peaks).dropna()
+        rpeaks = rpeaks[:len(TF_selection)]
+        new_rpeaks = pd.DataFrame(rpeaks[TF_selection])
         
-        TF_selection = pd.DataFrame(np.array(features[column2])).notna().values.flatten()
-        new_features_col2 = pd.DataFrame(np.array(features[column2])).dropna()
-        new_features_col1 = pd.DataFrame(np.array(info[column1])[TF_selection])
+        return new_peaks, new_rpeaks
     
-    
-    if column1 != 'ECG_R_Peaks' and column2 == 'ECG_R_Peaks':
-        TF_selection = pd.DataFrame(np.array(features[column1])).notna().values.flatten()
-        new_features_col1 = pd.DataFrame(np.array(features[column1])).dropna()
-        new_features_col2 = pd.DataFrame(np.array(info[column2])[TF_selection])
-    
-    
-    if column1 != 'ECG_R_Peaks' and column2 != 'ECG_R_Peaks':
-        TF_selection = pd.DataFrame(np.array(features[column1])).notna().values.flatten()
-        new_features_col1 = pd.DataFrame(np.array(features[column1])).dropna()
-        new_features_col2 = pd.DataFrame(np.array(features[column2])[TF_selection])
+    else:
+        total_df = pd.DataFrame(columns=['ECG_R_Peaks'])
         
-        TF_selection = new_features_col2.notna().values.flatten()
-        new_features_col2 = new_features_col2.dropna()
-        new_features_col1 = pd.DataFrame(np.array(new_features_col1.values.flatten())[TF_selection])
+        total_df['ECG_R_Peaks'] = rpeaks
+        total_df['ECG_Peaks'] = peaks
         
-    return new_features_col1, new_features_col2
+        total_df.dropna(inplace=True)
+        
+        return total_df['ECG_Peaks'], total_df['ECG_R_Peaks']
 
 
 
@@ -105,15 +107,14 @@ def remove_nulls(column1, column2):
     this function takes two ECG peaks, and return the distances, slopes and amplitudes between peaks.
 '''
 
-def get_ECG_features(column1, column2):
+def get_ECG_features(peaks1, peaks2):
     
+    X1 = peaks2
+    Y1 = signals.iloc[peaks2.values.flatten(), 1]
 
-    X1 = total_df[column1]
-    Y1 = signals.iloc[total_df[column1], 1]
-
-    X2 = features[column2]
-    Y2 = signals.iloc[total_df[column2], 1]
-        
+    X2 = peaks1
+    Y2 = signals.iloc[peaks1.values.flatten(), 1]
+    
     # Calculate Distances
     distances = Distances(X1, Y1, X2, Y2)
     
@@ -123,8 +124,9 @@ def get_ECG_features(column1, column2):
     return distances, slopes
 
 
+
 # load the model
-Extra_tree = joblib.load('Extra tree banha version2.h5')
+Extra_tree = joblib.load('Extra tree banha 2.h5')
 
 file = st.file_uploader('Upload ECG', type=['csv'])
 
@@ -134,73 +136,71 @@ if st.button('Predict'):
     person_name = df.columns[1]
     sample_rate = int(df.iloc[7, 1].split('.')[0])
     df.drop(person_name, inplace=True, axis=1)
-    
+
     df.drop(range(0, 10), inplace=True)
     df['signals'] = df['Name']
     df.drop('Name', inplace=True, axis=1)
     df['signals'] = df['signals'].astype('float')
+    df['signals'].dropna(inplace=True)
 
-    df.dropna(inplace=True)
-    
     signals, info = nk.ecg_process(df['signals'], sampling_rate=sample_rate)
-    signals, info = nk.ecg_process(signals['ECG_Clean'], sampling_rate=sample_rate)
-    sigs, features = nk.ecg_delineate(signals['ECG_Clean'], sampling_rate=sample_rate)
-    
-    total_df = pd.DataFrame(columns=['ECG_R_Peaks'])
-                
-    total_df['ECG_R_Peaks'] = info['ECG_R_Peaks']
-    total_df['ECG_P_Peaks'] = features['ECG_P_Peaks']
-    total_df['ECG_Q_Peaks'] = features['ECG_Q_Peaks']
-    total_df['ECG_S_Peaks'] = features['ECG_S_Peaks']
-    total_df['ECG_T_Peaks'] = features['ECG_T_Peaks']
 
-    total_df.dropna(inplace=True)
-    
-    # Features between PR
-    PR_distances = get_ECG_features('ECG_R_Peaks', 'ECG_P_Peaks')[0]
-    PR_slopes = get_ECG_features('ECG_R_Peaks', 'ECG_P_Peaks')[1]
-    PR_amplitudes = Amplitudes(total_df['ECG_R_Peaks'], total_df['ECG_P_Peaks'])
+    signals, info = nk.ecg_process(signals.iloc[:, 1], sampling_rate=sample_rate)
 
-    # Features between PQ
-    PQ_distances = get_ECG_features('ECG_P_Peaks', 'ECG_Q_Peaks')[0]
-    PQ_slopes = get_ECG_features('ECG_P_Peaks', 'ECG_Q_Peaks')[1]
-    PQ_amplitudes = Amplitudes(total_df['ECG_P_Peaks'], total_df['ECG_Q_Peaks'])
+    # rpeaks = nk.ecg_findpeaks(signals.iloc[:, 1], sampling_rate=sample_rate)
 
-    # Features between QS
-    QS_distances = get_ECG_features('ECG_Q_Peaks', 'ECG_S_Peaks')[0]
-    QS_slopes = get_ECG_features('ECG_Q_Peaks', 'ECG_S_Peaks')[1]
-    QS_amplitudes = Amplitudes(total_df['ECG_Q_Peaks'], total_df['ECG_S_Peaks'])
-
-    # Features between RT
-    RT_distances = get_ECG_features('ECG_R_Peaks', 'ECG_T_Peaks')[0]
-    RT_slopes = get_ECG_features('ECG_R_Peaks', 'ECG_T_Peaks')[1]
-    RT_amplitudes = Amplitudes(total_df['ECG_R_Peaks'], total_df['ECG_T_Peaks'])
-
-    # Features between ST
-    ST_distances = get_ECG_features('ECG_S_Peaks', 'ECG_T_Peaks')[0]
-    ST_slopes = get_ECG_features('ECG_S_Peaks', 'ECG_T_Peaks')[1]
-    ST_amplitudes = Amplitudes(total_df['ECG_S_Peaks'], total_df['ECG_T_Peaks'])
+    sigs, features = nk.ecg_delineate(signals.iloc[:, 1], sampling_rate=sample_rate, method='peak')
 
 
-    # Amplitudes
-    PS_amplitudes=Amplitudes(total_df['ECG_S_Peaks'], total_df['ECG_P_Peaks'])
-    PT_amplitudes=Amplitudes(total_df['ECG_T_Peaks'], total_df['ECG_P_Peaks'])
-    TQ_amplitudes=Amplitudes(total_df['ECG_T_Peaks'], total_df['ECG_Q_Peaks'])
-    RQ_amplitudes=Amplitudes(total_df['ECG_Q_Peaks'], total_df['ECG_R_Peaks'])
-    RS_amplitudes=Amplitudes(total_df['ECG_R_Peaks'], total_df['ECG_S_Peaks'])
+    p_peaks, pr_peaks = remove_nulls(features['ECG_P_Peaks'], info['ECG_R_Peaks'])
+    # print(len(p_peaks), len(pr_peaks))
 
-    IQR = intervals(total_df['ECG_Q_Peaks'], total_df['ECG_R_Peaks'])
-    IRS = intervals(total_df['ECG_R_Peaks'], total_df['ECG_S_Peaks'])
-    IPQ = intervals(total_df['ECG_P_Peaks'], total_df['ECG_Q_Peaks'])
-    IQS = intervals(total_df['ECG_Q_Peaks'], total_df['ECG_S_Peaks'])
-    IPS = intervals(total_df['ECG_P_Peaks'], total_df['ECG_S_Peaks'])
-    IPR = intervals(total_df['ECG_P_Peaks'], total_df['ECG_R_Peaks'])
-    IST = intervals(total_df['ECG_S_Peaks'], total_df['ECG_T_Peaks'])
-    IQT = intervals(total_df['ECG_Q_Peaks'], total_df['ECG_T_Peaks'])
-    IRT = intervals(total_df['ECG_R_Peaks'], total_df['ECG_T_Peaks'])
-    IPT = intervals(total_df['ECG_P_Peaks'], total_df['ECG_T_Peaks'])
+    q_peaks, qr_peaks = remove_nulls(features['ECG_Q_Peaks'], info['ECG_R_Peaks'])
+    # print(len(q_peaks), len(qr_peaks))
+
+    s_peaks, sr_peaks = remove_nulls(features['ECG_S_Peaks'], info['ECG_R_Peaks'])
+    # print(len(s_peaks), len(sr_peaks))
+
+    t_peaks, tr_peaks = remove_nulls(features['ECG_T_Peaks'], info['ECG_R_Peaks'])
+    # print(len(t_peaks), len(tr_peaks))
 
 
+    PR_distances = get_ECG_features(pr_peaks, p_peaks)[0]
+    PR_slopes = get_ECG_features(pr_peaks, p_peaks)[1]
+    PR_amplitudes = Amplitudes(pr_peaks.values.flatten(), p_peaks.values.flatten())
+
+    PQ_distances = get_ECG_features(p_peaks, q_peaks)[0]
+    PQ_slopes = get_ECG_features(p_peaks, q_peaks)[1]
+    PQ_amplitudes=Amplitudes(np.array(features['ECG_P_Peaks']), np.array(features['ECG_Q_Peaks']))
+
+    QS_distances = get_ECG_features(q_peaks, s_peaks)[0]
+    QS_slopes = get_ECG_features(q_peaks, s_peaks)[1]
+    QS_amplitudes = Amplitudes(np.array(features['ECG_Q_Peaks']), np.array(features['ECG_S_Peaks']))
+
+    RT_distances = get_ECG_features(tr_peaks, t_peaks)[0]
+    RT_slopes = get_ECG_features(tr_peaks, t_peaks)[1]
+    RT_amplitudes = Amplitudes(tr_peaks.values.flatten(), t_peaks.values.flatten())
+
+    ST_distances=get_ECG_features(s_peaks, t_peaks)[0]
+    ST_slopes=get_ECG_features(s_peaks, t_peaks)[1]
+    ST_amplitudes=Amplitudes(np.array(features['ECG_S_Peaks']), np.array(features['ECG_T_Peaks']))
+
+    PS_amplitudes = Amplitudes(np.array(features['ECG_P_Peaks']), np.array(features['ECG_S_Peaks']))
+    PT_amplitudes = Amplitudes(np.array(features['ECG_T_Peaks']), np.array(features['ECG_P_Peaks']))
+    TQ_amplitudes = Amplitudes(np.array(features['ECG_T_Peaks']), np.array(features['ECG_Q_Peaks']))
+    RQ_amplitudes = Amplitudes(q_peaks.values.flatten(), qr_peaks.values.flatten()))
+    RS_amplitudes = Amplitudes(sr_peaks.values.flatten(), s_peaks.values.flatten()))
+
+    QR_interval = intervals(q_peaks.values.flatten(), qr_peaks.values.flatten())
+    RS_interval = intervals(sr_peaks.values.flatten(), s_peaks.values.flatten())
+    PQ_interval = intervals(np.array(features['ECG_P_Peaks']), np.array(features['ECG_Q_Peaks']))
+    QS_interval = intervals(np.array(features['ECG_Q_Peaks']), np.array(features['ECG_S_Peaks']))
+    PS_interval = intervals(np.array(features['ECG_P_Peaks']), np.array(features['ECG_S_Peaks']))
+    PR_interval = intervals(p_peaks.values.flatten(), pr_peaks.values.flatten())
+    ST_interval = intervals(np.array(features['ECG_S_Peaks']), np.array(features['ECG_T_Peaks']))
+    QT_interval = intervals(np.array(features['ECG_Q_Peaks']), np.array(features['ECG_T_Peaks']))
+    RT_interval = intervals(tr_peaks.values.flatten(), t_peaks.values.flatten())
+    PT_interval = intervals(np.array(features['ECG_P_Peaks']), np.array(features['ECG_T_Peaks']))
 
     Extracted_Features_DF = pd.DataFrame(columns=[
         'PR Distances', 'PR Slope', 'PR Amplitude',
@@ -213,22 +213,22 @@ if st.button('Predict'):
         'QR Amplitude', 'RS Amplitude'
     ])
 
-
     lengths = [len(PR_distances), len(PR_slopes), len(PR_amplitudes)
-           , len(PQ_distances), len(PQ_slopes), len(PQ_amplitudes)
-           , len(QS_distances), len(QS_slopes), len(QS_amplitudes)
-           , len(ST_distances), len(ST_slopes), len(ST_amplitudes)
-           , len(RT_distances), len(RT_slopes), len(RT_amplitudes)
-           , len(PS_amplitudes), len(PT_amplitudes), len(TQ_amplitudes)
-           , len(RQ_amplitudes), len(RS_amplitudes)
-           
-           , len(IQR), len(IRS), len(IPQ)
-           , len(IQS), len(IPS), len(IPR)
-           , len(IST), len(IQT), len(IRT)
-           , len(IPT)
-          ]
+               , len(PQ_distances), len(PQ_slopes), len(PQ_amplitudes)
+               , len(QS_distances), len(QS_slopes), len(QS_amplitudes)
+               , len(ST_distances), len(ST_slopes), len(ST_amplitudes)
+               , len(RT_distances), len(RT_slopes), len(RT_amplitudes)
+               , len(PS_amplitudes), len(PT_amplitudes), len(TQ_amplitudes)
+               , len(RQ_amplitudes), len(RS_amplitudes)
+
+               , len(QR_interval_list), len(RS_interval_list), len(PQ_interval_list)
+               , len(QS_interval_list), len(PS_interval_list), len(PR_interval_list)
+               , len(ST_interval_list), len(QT_interval_list), len(RT_interval_list)
+               , len(PT_interval_list)
+              ]
 
     minimum = min(lengths) - 1
+
 
     Extracted_Features_DF['PR Distances'] = PR_distances[:minimum]
     Extracted_Features_DF['PR Slope'] = PR_slopes[:minimum]
@@ -257,16 +257,16 @@ if st.button('Predict'):
     Extracted_Features_DF['RS Amplitude'] = RS_amplitudes[:minimum]
 
 
-    Extracted_Features_DF['QR Interval'] = IQR[:minimum]
-    Extracted_Features_DF['RS Interval'] = IRS[:minimum]
-    Extracted_Features_DF['PQ Interval'] = IPQ[:minimum]
-    Extracted_Features_DF['QS Interval'] = IQS[:minimum]
-    Extracted_Features_DF['PS Interval'] = IPS[:minimum]
-    Extracted_Features_DF['PR Interval'] = IPR[:minimum]
-    Extracted_Features_DF['ST Interval'] = IST[:minimum]
-    Extracted_Features_DF['QT Interval'] = IQT[:minimum]
-    Extracted_Features_DF['RT Interval'] = IRT[:minimum]
-    Extracted_Features_DF['PT Interval'] = IPT[:minimum]
+    Extracted_Features_DF['QR Interval'] = RS_interval[:minimum]
+    Extracted_Features_DF['RS Interval'] = RS_interval[:minimum]
+    Extracted_Features_DF['PQ Interval'] = PQ_interval[:minimum]
+    Extracted_Features_DF['QS Interval'] = QS_interval[:minimum]
+    Extracted_Features_DF['PS Interval'] = PS_interval[:minimum]
+    Extracted_Features_DF['PR Interval'] = PR_interval[:minimum]
+    Extracted_Features_DF['ST Interval'] = ST_interval[:minimum]
+    Extracted_Features_DF['QT Interval'] = QT_interval[:minimum]
+    Extracted_Features_DF['RT Interval'] = RT_interval[:minimum]
+    Extracted_Features_DF['PT Interval'] = PT_interval[:minimum]
 
     Extracted_Features_DF.dropna(inplace=True)
     

@@ -126,7 +126,7 @@ def get_ECG_features(peaks1, peaks2):
 
 
 # load the model
-Extra_tree = joblib.load('Extra tree banha version2.h5')
+Extra_tree = joblib.load('Extra tree test 11 (97).h5')
 
 file = st.file_uploader('Upload ECG', type=['csv'])
 
@@ -147,9 +147,17 @@ if st.button('Predict'):
 
     signals, info = nk.ecg_process(signals.iloc[:, 1], sampling_rate=sample_rate)
 
+    filtered_data = heartpy.filtering.filter_signal(signals.iloc[:, 1], filtertype='bandpass', cutoff=[2.5, 40], sample_rate=sample_rate, order=3)
+    corrected_data = heartpy.hampel_correcter(filtered_data, sample_rate=sample_rate)
+    final_signal = np.array(filtered_data)+np.array(corrected_data)
+
+    filtered_data2 = heartpy.filtering.filter_signal(final_signal, filtertype='bandpass', cutoff=[3, 20], sample_rate=sample_rate, order=3)
+    corrected_data2 = heartpy.filtering.hampel_correcter(filtered_data2, sample_rate=sample_rate)
+    final_signal2 = np.array(filtered_data2) + np.array(corrected_data2)
+    
     # rpeaks = nk.ecg_findpeaks(signals.iloc[:, 1], sampling_rate=sample_rate)
 
-    sigs, features = nk.ecg_delineate(signals.iloc[:, 1], sampling_rate=sample_rate, method='peak')
+    sigs, features = nk.ecg_delineate(final_signal2, sampling_rate=sample_rate, method='peak')
 
 
     p_peaks, pr_peaks = remove_nulls(features['ECG_P_Peaks'], info['ECG_R_Peaks'])

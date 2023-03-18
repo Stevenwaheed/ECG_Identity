@@ -126,7 +126,7 @@ def get_ECG_features(peaks1, peaks2):
 
 
 # load the model
-Extra_tree = joblib.load('Extra tree banha 2.h5')
+Extra_tree = joblib.load('Extra tree test 11 (97).h5')
 
 file = st.file_uploader('Upload ECG', type=['csv'])
 

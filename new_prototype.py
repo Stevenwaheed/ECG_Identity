@@ -105,8 +105,8 @@ def get_ECG_features(column1, column2):
     return distances, slopes
 
 
-persons_path = 'C:\\Users\\Steven20367691\\Desktop\\persons\\'
-person_files = os.listdir(persons_path)
+# persons_path = 'C:\\Users\\Steven20367691\\Desktop\\persons\\'
+# person_files = os.listdir(persons_path)
 
 PR_distances = []
 PR_slopes = []
@@ -352,9 +352,9 @@ print('precision_score:', precision_score(ExtraTree_preds, y_test.values, averag
 
 
 
-model_path = 'C:\\Users\\Steven20367691\\Desktop\\'
+# model_path = 'C:\\Users\\Steven20367691\\Desktop\\'
 
 # Save the model
-joblib.dump(ExtraTree, model_path+'Extra tree banha 2.h5')
+joblib.dump(ExtraTree, 'Extra tree.h5')
 
 print(y.value_counts())

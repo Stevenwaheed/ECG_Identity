@@ -186,17 +186,20 @@ for member in team:
 
                 df.dropna(inplace=True)
                 
-                # h_f_s = heartpy.hampel_filter(df['signals'], filtsize=2)
-                # h_c_s = heartpy.hampel_correcter(h_f_s, sample_rate)
-
-                # f_s = heartpy.filter_signal(h_c_s, sample_rate=sample_rate, cutoff=[10, 40], filtertype='bandpass')
-
                 
                 signals, info = nk.ecg_process(df['signals'], sampling_rate=sample_rate)
 
                 signals, info = nk.ecg_process(signals.iloc[:, 1], sampling_rate=sample_rate)
                 
-                sigs, features = nk.ecg_delineate(signals.iloc[:, 1], sampling_rate=sample_rate, method='peak')
+                filtered_data = heartpy.filtering.filter_signal(signals.iloc[:, 1], filtertype='bandpass', cutoff=[2.5, 40], sample_rate=sample_rate, order=3)
+                corrected_data = heartpy.hampel_correcter(filtered_data, sample_rate=sample_rate)
+                final_signal = np.array(filtered_data)+np.array(corrected_data)
+
+                filtered_data2 = heartpy.filtering.filter_signal(final_signal, filtertype='bandpass', cutoff=[3, 20], sample_rate=sample_rate, order=3)
+                corrected_data2 = heartpy.filtering.hampel_correcter(filtered_data2, sample_rate=sample_rate)
+                final_signal2 = np.array(filtered_data2) + np.array(corrected_data2)
+                
+                sigs, features = nk.ecg_delineate(final_signal2, sampling_rate=sample_rate, method='peak')
                 
                 total_df = pd.DataFrame(columns=['ECG_R_Peaks'])
                 

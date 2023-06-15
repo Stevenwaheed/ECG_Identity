@@ -4,7 +4,7 @@
 
 <h2>🚀 Demo</h2>
 
-[https://drive.google.com/file/d/1io9suPH4\_NDUUvtHyw2WiHEQGBVrI6NJ/view?usp=sharing](https://drive.google.com/file/d/1io9suPH4_NDUUvtHyw2WiHEQGBVrI6NJ/view?usp=sharing)
+[ECG Website Video](https://drive.google.com/file/d/1io9suPH4_NDUUvtHyw2WiHEQGBVrI6NJ/view?usp=sharing)
 
   
   
